@@ -4,6 +4,7 @@ pandas
 langgraph
 langchain
 langchain_openai
+langchain-google-genai
 langchain_core
 osmnx
 ipython

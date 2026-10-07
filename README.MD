@@ -17,15 +17,25 @@ LLMs alone can't answer these reliably: they invent numbers and can't compute ro
 ## How it works
 
 ```
-START ──▶ graph_analyst ──▶ writer ──▶ END
+START ──▶ planner ──▶ graph_analyst ──▶ writer ──▶ END
+             │            ▲    │
+             │            └ tools ┘   (critical_roads, suggest_new_sites)
+             └──▶ END   (question out of scope)
 ```
 
 | Agent | Tools | Job |
 |---|---|---|
+| **planner** | none | Checks the question is about emergency access in Riyadh; if not, ends early with a short reply instead of running the tools |
 | **graph_analyst** | `critical_roads`, `suggest_new_sites` | Decides which tools the question needs, calls them, and reports the exact results |
 | **writer** | none | Turns the findings into a short Markdown report for a non-technical planner |
 
-Both agents are built with LangChain's `create_agent` and connected with LangGraph's `StateGraph`.
+Everything is one LangGraph `StateGraph`, with no hidden agent loops, so every model call and tool call is a visible step:
+
+- The **planner** is the LLM with structured output (`in_scope`, `reason`); a conditional edge routes on its decision.
+- The **graph_analyst** is the LLM with the tools bound. `tools_condition` sends its tool calls to a `ToolNode`, which loops back to the analyst; once it answers without tool calls, the graph moves on to the writer.
+- The **writer** is a single LLM call.
+
+`ask(question, verbose=True)` streams the run and prints each node, tool call and tool result as it happens.
 
 ### Data
 
@@ -66,8 +76,8 @@ The notebook also draws a map of the hospitals, critical roads and suggested sit
 | 2. Data | Download or load roads and hospitals |
 | 3. Graph algorithms | Dijkstra precompute, critical roads, site selection |
 | 4. Tools | `@tool` wrappers the agent can call |
-| 5. Agents | `graph_analyst` and `writer` |
-| 6. LangGraph pipeline | State, nodes, edges |
+| 5. Agents | `planner`, `graph_analyst` and `writer` |
+| 6. LangGraph pipeline | `LoopDetector` and step budgets, then state, nodes (including `loop_guard` and the tools node) and routes |
 | 7. Run it | `ask()` helper and an example question |
 | 8. Map | Folium map of the results |
 
