@@ -1,0 +1,12 @@
+networkx
+numpy
+pandas
+langgraph
+langchain
+langchain_openai
+langchain_core
+osmnx
+ipython
+folium
+pandas-stubs
+python-dotenv
